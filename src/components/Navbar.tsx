@@ -25,14 +25,21 @@ const Navbar = () => {
           ))}
         </ul>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="rounded-full text-zinc-300 hover:bg-white/10 hover:text-white">
-            Sign in
-          </Button>
-          <Button size="sm" className="rounded-full bg-indigo-600 px-4 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500">
-            Get Started
-          </Button>
-        </div>
+       <div className="flex items-center gap-2">
+  <Link
+    href="/signin"
+    className="rounded-full px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white"
+  >
+    Sign in
+  </Link>
+
+  <Link
+    href="/signup"
+    className="rounded-full bg-indigo-600 px-4 py-2 text-sm text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500"
+  >
+    Get Started
+  </Link>
+</div>
       </nav>
     </header>
   );
