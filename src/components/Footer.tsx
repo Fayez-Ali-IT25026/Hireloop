@@ -14,7 +14,7 @@ const socials = [
 
 const Footer = () => {
   return (
-    <footer className="border-t border-white/10">
+    <footer className="border-t border-white/10 bg-black text-white">
       <div className="mx-auto grid max-w-5xl gap-10 px-4 py-16 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div>
           <Image src="/logo.png" alt="hireloop" width={110} height={32} />
