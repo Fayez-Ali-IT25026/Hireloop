@@ -1,6 +1,8 @@
+import Cta from "@/components/Cta";
 import FeaturedJobs from "@/components/Featuredjobs";
 import Features from "@/components/Features";
 import Hero from "@/components/Hero";
+import Pricing from "@/components/Pricing";
 
 export default function Home() {
   return (
@@ -8,6 +10,8 @@ export default function Home() {
       <Hero />
       <FeaturedJobs/>
       <Features />
+      <Pricing />
+      <Cta/>
     </main>
   );
 }
