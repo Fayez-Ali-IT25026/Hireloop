@@ -16,6 +16,14 @@ socialProviders: {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string, 
         }, 
     },
+    user: {
+       additionalFields: {
+          role: {
+              type: ['admin', "seeker","recruiter"],
+              input: false
+            } 
+        }
+    },
 
   database: mongodbAdapter(db, {
     client,

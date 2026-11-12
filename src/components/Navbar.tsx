@@ -1,5 +1,9 @@
+"use client";
+
+
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const links = [
   { label: "Browse Jobs", href: "/jobs" },
@@ -8,6 +12,22 @@ const links = [
 ];
 
 const Navbar = () => {
+
+  const router = useRouter();
+
+const handleSignOut = async () => {
+
+await authClient.signOut();
+router.refresh();
+
+}
+
+  const { data: session, isPending } =
+    authClient.useSession();
+
+  const user = session?.user;
+
+
   return (
     <header className="fixed inset-x-0 top-4 z-50 px-4">
       <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 shadow-lg shadow-black/30 backdrop-blur-xl">
@@ -25,7 +45,19 @@ const Navbar = () => {
           ))}
         </ul>
 
-       <div className="flex items-center gap-2">
+{
+  user?<>
+  
+  <div className="flex items-center gap-2">
+<samp>Welcome {user.name}</samp>
+<button onClick={handleSignOut} className="rounded-full bg-indigo-600 px-4 py-2 text-sm text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500">Sign Out</button>
+
+  </div>
+  
+  
+  </>:  
+  
+  <div className="flex items-center gap-2">
   <Link
     href="/signin"
     className="rounded-full px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white"
@@ -40,6 +72,7 @@ const Navbar = () => {
     Get Started
   </Link>
 </div>
+}
       </nav>
     </header>
   );
