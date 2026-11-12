@@ -5,12 +5,20 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ImageIcon, Lock, Mail, User } from "lucide-react";
+import { Building2, ImageIcon, Lock, Mail, Search, ShieldCheck, User } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { DEFAULT_ROLE, type Role } from "@/lib/roles";
+import { cn } from "@/lib/utils";
+
+const ROLE_OPTIONS = [
+  { value: "seeker", label: "Seeker", icon: Search },
+  { value: "recruiter", label: "Recruiter", icon: Building2 },
+  { value: "admin", label: "Admin", icon: ShieldCheck },
+] as const satisfies ReadonlyArray<{ value: Role; label: string; icon: typeof Search }>;
 
 const validatePassword = (password: string): string | null => {
   if (password.length < 6) return "Password must be at least 6 characters.";
@@ -26,6 +34,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [photoURL, setPhotoURL] = useState("");
+  const [role, setRole] = useState<Role>(DEFAULT_ROLE);
 
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +57,7 @@ const RegisterPage = () => {
         name,
         email,
         password,
+        role,
         image: photoURL || undefined,
         callbackURL: "/signin",
       });
@@ -73,6 +83,7 @@ const RegisterPage = () => {
   const handelGoogleRegister = async () => {
     await authClient.signIn.social({
       provider: "google",
+      additionalData: { role },
     });
   };
 
@@ -92,6 +103,34 @@ const RegisterPage = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-zinc-300">I am a</Label>
+            <div role="radiogroup" aria-label="Account type" className="grid grid-cols-3 gap-2">
+              {ROLE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                <label
+                  key={value}
+                  className={cn(
+                    "flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-medium text-zinc-400 transition",
+                    "hover:border-white/20 hover:bg-white/[0.07] hover:text-zinc-200",
+                    "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-500/40",
+                    role === value && "border-indigo-500/60 bg-indigo-500/10 text-white"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value={value}
+                    checked={role === value}
+                    onChange={() => setRole(value)}
+                    className="sr-only"
+                  />
+                  <Icon className={cn("size-4", role === value ? "text-indigo-400" : "text-zinc-500")} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name" className="text-xs text-zinc-300">Name</Label>
             <div className="relative">
