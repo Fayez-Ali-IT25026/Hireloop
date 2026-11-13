@@ -7,7 +7,7 @@ import DashbordSidebar from "../components/DashbordSidebar";
 
 const dashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return (
-        <SidebarProvider className="dark">
+        <SidebarProvider className="dark [color-scheme:dark]">
       <DashbordSidebar />
       <SidebarInset className="bg-[#050505] text-white">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-4">
