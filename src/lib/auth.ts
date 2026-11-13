@@ -22,7 +22,7 @@ socialProviders: {
     user: {
        additionalFields: {
           role: {
-              type: "string",
+               type: ["seeker", "recruiter", "admin"],
               required: false,
               defaultValue: DEFAULT_ROLE,
               input: true
