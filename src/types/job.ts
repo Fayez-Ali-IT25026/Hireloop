@@ -14,6 +14,10 @@ export interface JobForm {
   benefits: string;
 }
 
+export interface Job extends CreateJobPayload {
+  _id: string;
+}
+
 export interface CreateJobPayload
   extends Omit<JobForm, "salaryMin" | "salaryMax"> {
   salaryMin: number | null;
