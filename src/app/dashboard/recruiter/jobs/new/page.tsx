@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import type {  CreateJobPayload } from "@/types/job";
 
 import {
   ArrowLeft,
@@ -33,8 +34,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { createJob } from "@/lib/actions/jobs";
 
-interface JobForm {
+export  interface JobForm {
   title: string;
   category: string;
   type: string;
@@ -192,10 +194,44 @@ const CreateJobsPage = () => {
     });
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    saveJob("active");
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+    const jobData: CreateJobPayload = {
+    ...form,
+    salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
+    salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+    status: "active",
+    createdAt: new Date().toISOString(),
   };
+
+
+  try {
+    const jobData: CreateJobPayload = {
+      ...form,
+      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
+      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await createJob(jobData);
+
+    console.log("Create job result:", result);
+
+    toast.success("Job published successfully!");
+
+    setCollected({
+      ...form,
+      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
+      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+      status: "active",
+      createdAt: jobData.createdAt,
+    });
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to publish job");
+  }
+};
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
