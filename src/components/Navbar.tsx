@@ -5,11 +5,6 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
-const links = [
-  { label: "Browse Jobs", href: "/jobs" },
-  { label: "Company", href: "/company" },
-  { label: "Pricing", href: "/pricing" },
-];
 
 const Navbar = () => {
 
@@ -26,6 +21,13 @@ router.refresh();
     authClient.useSession();
 
   const user = session?.user;
+
+  const links = [
+  { label: "Browse Jobs", href: "/jobs" },
+  { label: "Company", href: "/company" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Dashboard", href: `/dashboard/${session?.user?.role}` },
+];
 
 
   return (
