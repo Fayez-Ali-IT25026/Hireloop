@@ -62,7 +62,7 @@ const JobCard = ({ job }: { job: Job }) => (
         </div>
       </div>
 
-      {job.remote ? (
+      {job.isRemote ? (
         <Badge className="shrink-0 border-0 bg-emerald-500/10 text-emerald-300">
           Remote
         </Badge>
@@ -80,7 +80,7 @@ const JobCard = ({ job }: { job: Job }) => (
       </span>
       <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1">
         <Briefcase className="size-3 text-zinc-500" />
-        {job.type}
+        {job.jobType}
       </span>
       <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1">
         <Wallet className="size-3 text-zinc-500" />
@@ -179,7 +179,45 @@ const JobsSkeleton = () => (
   </div>
 );
 
-const jobsPage = ({ searchParams }: PageProps<"/jobs">) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const jobsPage = async ({ searchParams }: PageProps<"/jobs">) => {
+
+
+     const search = await searchParams
+    const urlSearch = new URLSearchParams(search as Record<string, string>)
+    const query = urlSearch.toString()
+
+    console.log("Search params:", query)
+    // TODO: implement the query-param wiring from the filter UI here.
+    const jobs = await getJobs(query)
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
       <Navbar />

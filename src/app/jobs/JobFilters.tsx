@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 const categories = [
   { value: "all", label: "All categories" },
@@ -40,6 +41,7 @@ const triggerClass =
   "h-10 w-full rounded-xl border-white/10 bg-black/40 px-3 text-sm text-white focus-visible:border-indigo-500/60 focus-visible:ring-indigo-500/20 sm:w-52";
 
 const JobFilters = () => {
+      const router = useRouter()
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [type, setType] = useState("all");
@@ -47,29 +49,133 @@ const JobFilters = () => {
   const hasFilters =
     search.trim() !== "" || category !== "all" || type !== "all";
 
-  // Query wiring is intentionally left empty — connect these to the API / URL.
-  const onSearch = () => {};
-  const onFilterChange = () => {};
 
-  const clearFilters = () => {
-    setSearch("");
-    setCategory("all");
-    setType("all");
-    onFilterChange();
-  };
+
+
+
+
+
+
+
+
+
+
+//   // Query wiring is intentionally left empty — connect these to the API / URL.
+//   const onSearch = (event: React.FormEvent<HTMLFormElement>) => {
+//     event.preventDefault();
+
+//     const formData = new FormData(event.currentTarget);
+//     const data = Object.fromEntries(formData.entries());
+//     console.log("Search submitted:", data);
+//     //search came from input name fild
+//    const search = data.search;   
+//  const params = new URLSearchParams()
+//         params.set('search', search as string);
+//         router.push(`/jobs?${params.toString()}`)
+
+
+
+
+//   };
+
+const onSearch = (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+
+  const formData = new FormData(event.currentTarget);
+  const data = Object.fromEntries(formData.entries());
+
+  console.log("Search submitted:", data);
+
+  const params = new URLSearchParams();
+
+  params.set("search", data.search as string);
+
+  if (category !== "all") {
+    params.set("category", category);
+  }
+
+  if (type !== "all") {
+    params.set("jobType", type);
+  }
+
+  router.push(`/jobs?${params.toString()}`);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+const onFilterChange = (
+  newCategory = category,
+  newType = type
+) => {
+  const params = new URLSearchParams();
+
+  if (search.trim()) {
+    params.set("search", search.trim());
+  }
+
+  if (newCategory !== "all") {
+    params.set("category", newCategory);
+  }
+
+  if (newType !== "all") {
+    params.set("jobType", newType);
+  }
+
+  router.push(`/jobs?${params.toString()}`);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // const clearFilters = () => {
+  //   setSearch("");
+  //   setCategory("all");
+  //   setType("all");
+  //   onFilterChange();
+  // };
+const clearFilters = () => {
+  setSearch("");
+  setCategory("all");
+  setType("all");
+
+  router.push("/jobs");
+};
+
+
+
+
+
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-4">
       <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSearch();
-        }}
+       onSubmit={onSearch}
         className="flex flex-col gap-2 sm:flex-row"
       >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-zinc-500" />
           <Input
+           name="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by role, location, or keyword..."
@@ -95,11 +201,17 @@ const JobFilters = () => {
 
         <Select
           items={categories}
+          name="category"
           value={category}
+          // onValueChange={(value) => {
+          //   setCategory(value ?? "all");
+          //   onFilterChange();
+          // }}
           onValueChange={(value) => {
-            setCategory(value ?? "all");
-            onFilterChange();
-          }}
+  const newValue = value ?? "all";
+  setCategory(newValue);
+  onFilterChange(newValue, type);
+}}
         >
           <SelectTrigger aria-label="Filter by category" className={triggerClass}>
             <SelectValue placeholder="All categories" />
@@ -115,11 +227,17 @@ const JobFilters = () => {
 
         <Select
           items={jobTypes}
+          name="jobType"
           value={type}
+          // onValueChange={(value) => {
+          //   setType(value ?? "all");
+          //   onFilterChange();
+          // }}
           onValueChange={(value) => {
-            setType(value ?? "all");
-            onFilterChange();
-          }}
+  const newValue = value ?? "all";
+  setType(newValue);
+  onFilterChange(category, newValue);
+}}
         >
           <SelectTrigger aria-label="Filter by job type" className={triggerClass}>
             <SelectValue placeholder="All types" />
