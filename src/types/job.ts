@@ -2,8 +2,10 @@ export interface JobForm {
   title: string;
   category: string;
   type: string;
+ jobType: string;
   location: string;
   remote: boolean;
+  isRemote: boolean;
   deadline: string;
   currency: string;
   salaryMin: string;

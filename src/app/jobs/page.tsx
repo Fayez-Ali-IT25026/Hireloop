@@ -14,8 +14,14 @@ import { getJobs } from "@/lib/actions/jobs";
 import type { Job } from "@/types/job";
 
 import JobFilters from "./JobFilters";
+import Link from "next/link";
 
 const formatSalary = (job: Job) => {
+
+
+
+
+
   if (job.salaryMin == null && job.salaryMax == null) {
     return "Salary not specified";
   }
@@ -47,8 +53,12 @@ const pretty = (value: string) => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
+
+
+
+
 const JobCard = ({ job }: { job: Job }) => (
-  <article className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-white/[0.05]">
+  <Link href={`/jobs/${job._id}`} className="group flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-white/[0.05]">
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20">
@@ -94,15 +104,12 @@ const JobCard = ({ job }: { job: Job }) => (
         Apply by {formatDate(job.deadline)}
       </span>
 
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-400 transition-all group-hover:gap-2"
-      >
-        View role
-        <ArrowUpRight className="size-3.5" />
-      </button>
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-400 transition-all group-hover:gap-2">
+  View role
+  <ArrowUpRight className="size-3.5" />
+</span>
     </div>
-  </article>
+  </Link>
 );
 
 const JobsList = async ({
