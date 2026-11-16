@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import type { Job } from "@/types/job";
 import { Button } from "@/components/ui/button";
-import { createApplication } from "@/lib/actions/applications";
+import { createApplication, getApplicationsCount } from "@/lib/actions/applications";
 import type { CreateApplicationPayload } from "@/types/application";
 
 interface ApplyPageProps {
@@ -25,6 +25,13 @@ const ApplyPage = ({ job }: ApplyPageProps) => {
     }
 
     else if(user.role === 'seeker'){
+
+      const countResult = await getApplicationsCount(`applicantId=${user.id}`)
+
+      if(countResult.count >= 5){router.push('/payment');
+        return;}
+
+        else{
             // Save the full application snapshot (job + seeker + lifecycle)
             // so the My Applications page can render with no joins.
             const application: CreateApplicationPayload = {
@@ -56,7 +63,7 @@ const ApplyPage = ({ job }: ApplyPageProps) => {
                 console.log("Application submitted successfully");
                 router.push('/jobs')
             }
-        }
+        }}
         else{
             console.log("user is not a job seeker")
         }

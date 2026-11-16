@@ -11,7 +11,10 @@ export const getApplications = async (query = ""): Promise<JobApplication[]> => 
     const res = await fetch(`${BASE_URL}/applications?${query}`)
     return res.json()
 }
-
+export const getApplicationsCount = async (query = ""): Promise<{ count: number }> => {
+    const res = await fetch(`${BASE_URL}/applications/count?${query}`)
+    return res.json()
+}
 
 
 export const createApplication = async (data: CreateApplicationPayload) => {
