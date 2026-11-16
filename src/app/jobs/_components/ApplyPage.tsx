@@ -6,6 +6,7 @@ import type { Job } from "@/types/job";
 import { Button } from "@/components/ui/button";
 import { createApplication, getApplicationsCount } from "@/lib/actions/applications";
 import type { CreateApplicationPayload } from "@/types/application";
+import { getUserPremiumById } from "@/lib/api/user";
 
 interface ApplyPageProps {
   job: Job;
@@ -26,9 +27,12 @@ const ApplyPage = ({ job }: ApplyPageProps) => {
 
     else if(user.role === 'seeker'){
 
+
+      const premiumResult = await getUserPremiumById(user.id) 
+
       const countResult = await getApplicationsCount(`applicantId=${user.id}`)
 
-      if(countResult.count >= 5){router.push('/payment');
+      if(!premiumResult.premium &&  countResult.count >= 2){router.push('/payment');
         return;}
 
         else{

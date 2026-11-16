@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
+import CheckoutPage from "@/components/checkoutPage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -49,13 +49,15 @@ const steps = [
   { label: "Confirmation", state: "todo" },
 ] as const;
 
-const PaymentPage = () => {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+const PaymentPage =  () => {
 
-    // TODO: create a Stripe Checkout Session on the server and redirect here:
-    // window.location.href = checkoutUrl;
-  };
+    
+  // const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  //   event.preventDefault();
+
+  //   // TODO: create a Stripe Checkout Session on the server and redirect here:
+  //   // window.location.href = checkoutUrl;
+  // };
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -112,10 +114,7 @@ const PaymentPage = () => {
             ))}
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]"
-          >
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
                 <div className="flex items-center gap-2.5">
@@ -254,13 +253,7 @@ const PaymentPage = () => {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="mt-5 h-11 w-full gap-2 rounded-xl bg-indigo-600 font-semibold text-white shadow-lg shadow-indigo-600/25 hover:bg-indigo-500"
-                >
-                  <Lock className="size-4" />
-                  Pay {money(plan.price)}
-                </Button>
+               <CheckoutPage  price={plan.price} />
 
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-zinc-500">
                   You&apos;ll be redirected to Stripe&apos;s secure checkout to
@@ -273,7 +266,7 @@ const PaymentPage = () => {
                 </div>
               </div>
             </aside>
-          </form>
+          </div>
         </div>
       </section>
     </main>
