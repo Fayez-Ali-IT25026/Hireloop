@@ -11,9 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { useSearchParams } from "next/navigation"
+
+
+
 
 const LoginPage = () => {
   const router = useRouter();
+
+
+  const searchParams = useSearchParams()
+    const redirectTo = searchParams.get("redirectTo") ?? "/"
+
+    console.log("redirect to", redirectTo)
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +37,7 @@ const LoginPage = () => {
       const { data, error } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/",
+        callbackURL: redirectTo,
       });
 
       if (error) {
@@ -38,7 +48,7 @@ const LoginPage = () => {
       console.log("Login successful:", data);
       toast.success("Welcome back!");
 
-      router.push("/");
+      router.push(redirectTo);
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);

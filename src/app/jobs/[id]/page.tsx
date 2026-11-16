@@ -20,8 +20,9 @@ import {
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getJob } from "@/lib/api/jobs";
+import { getJob, getJobById } from "@/lib/api/jobs";
 import type { Job } from "@/types/job";
+import ApplyPage from "../_components/ApplyPage";
 
 export const instant = false;
 
@@ -118,13 +119,27 @@ const OverviewRow = ({
   </div>
 );
 
-const JobDetailPage = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const { id } = await params;
-  const job: Job | null = await getJob(id).catch(() => null);
+const JobDetailPage = async ({ params,}: {params: Promise<{ id: string }>;}) => {
+
+
+
+
+
+//   const { id } = await params;
+//   const job: Job | null = await getJob(id).catch(() => null);
+const { id } = await params
+    const job = await getJobById(id);
+
+    if (!job) notFound()
+
+
+
+
+
+
+
+
+
 
   if (!job) notFound();
 
@@ -271,9 +286,7 @@ const JobDetailPage = async ({
               Applications close on {formatDate(job.deadline)}. Take a minute to
               tailor your resume before you send it.
             </p>
-            <Button className="mt-4 h-10 w-full rounded-xl bg-indigo-600 font-semibold text-white shadow-lg shadow-indigo-600/25 hover:bg-indigo-500">
-              Apply for this role
-            </Button>
+           <ApplyPage job={job}/>
           </div>
         </aside>
       </section>

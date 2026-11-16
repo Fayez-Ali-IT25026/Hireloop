@@ -15,6 +15,17 @@ async function request(path: string, options?: RequestInit) {
     return res.json();
 }
 
+
+export const getJobById = async (jobId: string): Promise<CreateJobPayload > => {
+    const res = await fetch(`${BASE_URL}/jobs/${jobId}`)
+    return res.json()
+}
+
+
+
+
+
+
 export const getJobs = () => request("/jobs");
 
 export const getJob = (jobId: string) => request(`/jobs/${jobId}`);
