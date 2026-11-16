@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import type { Job } from "@/types/job";
 import { Button } from "@/components/ui/button";
+import { createApplication } from "@/lib/actions/applications";
 
 interface ApplyPageProps {
   job: Job;
@@ -22,8 +23,37 @@ const ApplyPage = ({ job }: ApplyPageProps) => {
       return;
     }
 
-    // Application logic will go here.
-  };
+    else if(user.role === 'seeker'){
+            // Save the full application snapshot (job + seeker + lifecycle)
+            // so the My Applications page can render with no joins.
+            const application = {
+                jobId: job._id,
+                userId: user.id,
+                email: user.email,
+                jobTitle: job.title,
+                
+                jobType: job.jobType,
+                isRemote: job.isRemote,
+                location: job.location,
+              
+               
+                deadline: job.deadline,
+                appliedAt: new Date().toISOString(),
+                status: "applied",
+                archived: false,
+            }
+
+            const result = await createApplication(application);
+            if(result.insertedId){
+                console.log("Application submitted successfully");
+                router.push('/jobs')
+            }
+        }
+        else{
+            console.log("user is not a job seeker")
+        }
+    }
+  ;
 
   return (
     <div>
