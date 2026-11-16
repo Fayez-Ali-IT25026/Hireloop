@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import type { Job } from "@/types/job";
 import { Button } from "@/components/ui/button";
 import { createApplication } from "@/lib/actions/applications";
+import type { CreateApplicationPayload } from "@/types/application";
 
 interface ApplyPageProps {
   job: Job;
@@ -26,18 +27,25 @@ const ApplyPage = ({ job }: ApplyPageProps) => {
     else if(user.role === 'seeker'){
             // Save the full application snapshot (job + seeker + lifecycle)
             // so the My Applications page can render with no joins.
-            const application = {
+            const application: CreateApplicationPayload = {
                 jobId: job._id,
                 userId: user.id,
+                applicantName: user.name,
                 email: user.email,
+
                 jobTitle: job.title,
-                
-                jobType: job.jobType,
-                isRemote: job.isRemote,
+                category: job.category,
+                jobType: job.type,
                 location: job.location,
-              
-               
+                isRemote: job.remote,
                 deadline: job.deadline,
+                currency: job.currency,
+                salaryMin: job.salaryMin,
+                salaryMax: job.salaryMax,
+
+                resumeUrl: "",
+                coverLetter: "",
+
                 appliedAt: new Date().toISOString(),
                 status: "applied",
                 archived: false,
