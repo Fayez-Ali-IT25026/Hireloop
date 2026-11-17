@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import type {  CreateJobPayload } from "@/types/job";
-
+// CHANGE: import the router so we can leave the page after saving.
+import { useRouter } from "next/navigation";
+import type { CreateJobPayload } from "@/types/job";
 import {
   ArrowLeft,
   Briefcase,
@@ -18,10 +19,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-
+import { authClient } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,9 +40,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createJob } from "@/lib/actions/jobs";
 
-export  interface JobForm {
+interface JobForm {
   title: string;
   category: string;
+  companyId?: string;
+  recruiterId: string;
   type: string;
   location: string;
   remote: boolean;
@@ -52,12 +58,9 @@ export  interface JobForm {
   benefits: string;
 }
 
-interface CollectedJob extends Omit<JobForm, "salaryMin" | "salaryMax"> {
-  salaryMin: number | null;
-  salaryMax: number | null;
-  status: "draft" | "active";
-  createdAt: string;
-}
+// CHANGE: removed the CollectedJob type.
+// WHY: it only described the debug JSON panel, which is gone now that saving
+// actually calls the API.
 
 const categories = [
   { value: "engineering", label: "Engineering" },
@@ -70,10 +73,7 @@ const categories = [
   { value: "other", label: "Other" },
 ];
 
-const currencies = ["USD", "EUR", "GBP", "BDT"].map((value) => ({
-  value,
-  label: value,
-}));
+const currencies = ["USD", "EUR", "GBP", "BDT"];
 
 const jobTypes = [
   "Full-time",
@@ -86,6 +86,7 @@ const jobTypes = [
 const initialForm: JobForm = {
   title: "",
   category: "engineering",
+  recruiterId: "",
   type: "Full-time",
   location: "",
   remote: false,
@@ -121,10 +122,15 @@ function FormField({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <Label htmlFor={htmlFor} className="text-xs font-medium text-zinc-300">
+        <Label
+          htmlFor={htmlFor}
+          className="text-xs font-medium text-zinc-300"
+        >
           {label}
         </Label>
-        {hint ? <span className="text-[11px] text-zinc-500">{hint}</span> : null}
+        {hint ? (
+          <span className="text-[11px] text-zinc-500">{hint}</span>
+        ) : null}
       </div>
       {children}
     </div>
@@ -154,11 +160,25 @@ function SectionHeader({
 }
 
 const CreateJobsPage = () => {
-  const [form, setForm] = useState<JobForm>(initialForm);
-  const [collected, setCollected] = useState<CollectedJob | null>(null);
+  // All React hooks must be called inside this component.
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
 
-  const update = <K extends keyof JobForm>(key: K, value: JobForm[K]) =>
+  // CHANGE: used to return to the jobs list after saving.
+  const router = useRouter();
+
+  const [form, setForm] = useState<JobForm>(initialForm);
+  // CHANGE: removed the `collected` state and its JSON panel.
+  // WHY: it was debug output. The job now really goes to the API instead.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // CHANGE: removed the useEffect that copied the session id into the form.
+  // WHY: saveJob() already sets recruiterId from the session when it sends the
+  // request, so the effect was redundant and caused an extra re-render.
+
+  const update = <K extends keyof JobForm>(key: K, value: JobForm[K]) => {
     setForm((previous) => ({ ...previous, [key]: value }));
+  };
 
   const categoryLabel =
     categories.find((category) => category.value === form.category)?.label ??
@@ -177,61 +197,74 @@ const CreateJobsPage = () => {
       })
     : "No deadline";
 
-  const saveJob = (status: CollectedJob["status"]) => {
-    const payload: CollectedJob = {
-      ...form,
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
-      status,
-      createdAt: new Date().toISOString(),
-    };
+  // CHANGE: one save function for both buttons, and it really calls the API.
+  // WHY: "Save draft" used to only update local state, so drafts were never
+  // stored, and "Publish" always forced status "active".
+  const saveJob = async (status: "draft" | "active") => {
+    if (!user?.id) {
+      toast.error("You must be signed in to save a job.");
+      return;
+    }
 
-    console.log("Collected job data:", payload);
-    setCollected(payload);
+    // CHANGE: small checks before sending anything.
+    if (status === "active" && !form.title.trim()) {
+      toast.error("Add a job title first.");
+      return;
+    }
 
-    toast.success(status === "draft" ? "Draft saved" : "Job published", {
-      description: `${payload.title || "Untitled role"} · ${payload.type}`,
-    });
+    if (status === "active" && !form.description.trim()) {
+      toast.error("Add a description first.");
+      return;
+    }
+
+    const salaryMin = form.salaryMin ? Number(form.salaryMin) : null;
+    const salaryMax = form.salaryMax ? Number(form.salaryMax) : null;
+
+    if (salaryMin !== null && salaryMax !== null && salaryMin > salaryMax) {
+      toast.error("Minimum salary cannot be higher than the maximum.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const jobData: CreateJobPayload = {
+        ...form,
+        recruiterId: user.id,
+        salaryMin,
+        salaryMax,
+        status,
+        createdAt: new Date().toISOString(),
+      };
+
+      await createJob(jobData);
+
+      toast.success(status === "draft" ? "Draft saved" : "Job published");
+
+      // CHANGE: return to the list after saving.
+      // WHY: staying here kept the old values, so clicking Publish twice
+      // created duplicate jobs.
+      router.push("/dashboard/recruiter/jobs");
+      router.refresh();
+    } catch {
+      toast.error(
+        status === "draft" ? "Could not save draft." : "Could not publish job."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-    const jobData: CreateJobPayload = {
-    ...form,
-    salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
-    salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
-    status: "active",
-    createdAt: new Date().toISOString(),
+    event.preventDefault();
+
+    if (isPending) {
+      toast.error("Please wait while your session loads.");
+      return;
+    }
+
+    await saveJob("active");
   };
-
-
-  try {
-    const jobData: CreateJobPayload = {
-      ...form,
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
-      status: "active",
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = await createJob(jobData);
-
-    console.log("Create job result:", result);
-
-    toast.success("Job published successfully!");
-
-    setCollected({
-      ...form,
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
-      status: "active",
-      createdAt: jobData.createdAt,
-    });
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to publish job");
-  }
-};
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -244,22 +277,19 @@ const CreateJobsPage = () => {
             <ArrowLeft className="size-4" />
             Back to jobs
           </Link>
+
           <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Create a new job
           </h1>
+
           <p className="max-w-xl text-sm text-zinc-400">
-            Add the role details once. The preview updates as you type, and the
-            collected data is ready to send to your API.
+            Add the role details once. The preview updates as you type.
           </p>
         </div>
 
-        <Badge
-          variant="outline"
-          className="border-white/10 bg-white/[0.03] text-zinc-400"
-        >
-          <span className="size-1.5 rounded-full bg-emerald-400" />
-          Draft mode
-        </Badge>
+        {/* CHANGE: removed the "Draft mode" badge.
+            WHY: it said the page was in draft mode, but Publish always saved an
+            active job. The badge was misleading. */}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -270,6 +300,7 @@ const CreateJobsPage = () => {
               title="Role details"
               description="The basics candidates will see first."
             />
+
             <CardContent className="grid gap-5 p-5 sm:grid-cols-2">
               <FormField
                 label="Job title"
@@ -289,19 +320,23 @@ const CreateJobsPage = () => {
 
               <FormField label="Category" htmlFor="category">
                 <Select
-                  items={categories}
                   value={form.category}
+                  // CHANGE: "?? ''" because the select can emit null.
                   onValueChange={(value) => update("category", value ?? "")}
                 >
                   <SelectTrigger
                     id="category"
-                    className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] px-3 text-sm text-white focus-visible:border-indigo-500/60 focus-visible:ring-indigo-500/20"
+                    className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] px-3 text-sm text-white"
                   >
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  {/* CHANGE: "dark" keeps the portaled menu dark on this page. */}
+                  <SelectContent className="dark">
                     {categories.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
+                      <SelectItem
+                        key={category.value}
+                        value={category.value}
+                      >
                         {category.label}
                       </SelectItem>
                     ))}
@@ -319,7 +354,7 @@ const CreateJobsPage = () => {
                     onChange={(event) =>
                       update("location", event.target.value)
                     }
-                    placeholder="San Francisco, CA"
+                    placeholder="e.g. Dhaka, Bangladesh"
                     className={cn(inputClass, "pl-9")}
                   />
                 </div>
@@ -384,23 +419,24 @@ const CreateJobsPage = () => {
               title="Compensation"
               description="Give candidates a clear salary range."
             />
+
             <CardContent className="grid gap-5 p-5 sm:grid-cols-3">
               <FormField label="Currency" htmlFor="currency">
                 <Select
-                  items={currencies}
                   value={form.currency}
+                  // CHANGE: "?? ''" because the select can emit null.
                   onValueChange={(value) => update("currency", value ?? "")}
                 >
                   <SelectTrigger
                     id="currency"
-                    className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] px-3 text-sm text-white focus-visible:border-indigo-500/60 focus-visible:ring-indigo-500/20"
+                    className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] px-3 text-sm text-white"
                   >
-                    <SelectValue placeholder="USD" />
+                    <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="dark">
                     {currencies.map((currency) => (
-                      <SelectItem key={currency.value} value={currency.value}>
-                        {currency.label}
+                      <SelectItem key={currency} value={currency}>
+                        {currency}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -447,6 +483,7 @@ const CreateJobsPage = () => {
               title="Job description"
               description="Explain the role, expectations, and perks."
             />
+
             <CardContent className="space-y-5 p-5">
               <FormField label="Overview" htmlFor="description">
                 <Textarea
@@ -464,7 +501,10 @@ const CreateJobsPage = () => {
               </FormField>
 
               <div className="grid gap-5 sm:grid-cols-2">
-                <FormField label="Responsibilities" htmlFor="responsibilities">
+                <FormField
+                  label="Responsibilities"
+                  htmlFor="responsibilities"
+                >
                   <Textarea
                     id="responsibilities"
                     name="responsibilities"
@@ -473,7 +513,9 @@ const CreateJobsPage = () => {
                     onChange={(event) =>
                       update("responsibilities", event.target.value)
                     }
-                    placeholder={"One responsibility per line\nLead design reviews\nShip polished features"}
+                    placeholder={
+                      "One responsibility per line\nLead design reviews\nShip polished features"
+                    }
                     className={textareaClass}
                   />
                 </FormField>
@@ -487,23 +529,23 @@ const CreateJobsPage = () => {
                     onChange={(event) =>
                       update("requirements", event.target.value)
                     }
-                    placeholder={"One requirement per line\n5+ years of experience\nStrong communication skills"}
+                    placeholder={
+                      "One requirement per line\n5+ years of experience\nStrong communication skills"
+                    }
                     className={textareaClass}
                   />
                 </FormField>
               </div>
 
-              <FormField
-                label="Benefits"
-                htmlFor="benefits"
-                hint="Optional"
-              >
+              <FormField label="Benefits" htmlFor="benefits" hint="Optional">
                 <Textarea
                   id="benefits"
                   name="benefits"
                   rows={3}
                   value={form.benefits}
-                  onChange={(event) => update("benefits", event.target.value)}
+                  onChange={(event) =>
+                    update("benefits", event.target.value)
+                  }
                   placeholder="Health insurance, remote stipend, unlimited PTO..."
                   className={textareaClass}
                 />
@@ -521,20 +563,25 @@ const CreateJobsPage = () => {
             >
               Cancel
             </Link>
+
             <Button
               type="button"
               variant="outline"
               onClick={() => saveJob("draft")}
+              // CHANGE: also disable while saving, so it can't double-submit.
+              disabled={isPending || isSubmitting || !user?.id}
               className="h-10 rounded-xl border-white/10 bg-transparent px-4 hover:bg-white/5"
             >
               Save draft
             </Button>
+
             <Button
               type="submit"
+              disabled={isPending || isSubmitting || !user?.id}
               className="h-10 gap-2 rounded-xl bg-indigo-600 px-5 font-semibold text-white shadow-lg shadow-indigo-600/25 hover:bg-indigo-500"
             >
               <Send className="size-4" />
-              Publish job
+              {isSubmitting ? "Saving..." : "Publish job"}
             </Button>
           </div>
         </form>
@@ -554,6 +601,7 @@ const CreateJobsPage = () => {
             <div className="relative h-20 overflow-hidden bg-gradient-to-br from-indigo-600/40 via-violet-600/20 to-transparent">
               <div className="absolute -top-12 -right-8 size-40 rounded-full bg-indigo-500/30 blur-3xl" />
             </div>
+
             <div className="px-5 pb-5">
               <div className="-mt-8 mb-4 grid size-14 place-items-center rounded-2xl bg-[#0b0b0f] shadow-lg ring-1 ring-white/10">
                 <Building2 className="size-6 text-indigo-400" />
@@ -562,6 +610,7 @@ const CreateJobsPage = () => {
               <h2 className="text-lg font-semibold text-white">
                 {form.title || "Untitled role"}
               </h2>
+
               <p className="mt-0.5 text-xs text-zinc-500">
                 Your Company ·{" "}
                 {form.remote ? "Remote" : form.location || "Location TBD"}
@@ -608,25 +657,9 @@ const CreateJobsPage = () => {
             </p>
           </div>
 
-          {collected ? (
-            <Card className="gap-3 bg-white/[0.02] py-4 ring-1 ring-white/[0.06]">
-              <CardHeader className="px-4">
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-sm text-white">
-                    Collected data
-                  </CardTitle>
-                  <Badge className="border-0 bg-emerald-500/10 text-emerald-300 capitalize">
-                    {collected.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4">
-                <pre className="max-h-64 overflow-auto rounded-xl border border-white/[0.06] bg-black/40 p-3 text-[11px] leading-relaxed text-zinc-400">
-                  {JSON.stringify(collected, null, 2)}
-                </pre>
-              </CardContent>
-            </Card>
-          ) : null}
+          {/* CHANGE: removed the "Collected data" panel.
+              WHY: it printed the raw JSON payload on screen. It was debug
+              scaffolding, not part of the page. */}
         </aside>
       </div>
     </div>

@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteJob, getJobs, updateJob } from "@/lib/api/jobs";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/types/job";
 
@@ -124,11 +125,14 @@ const formatSalary = (job: Job) => {
 
   const number = (value: number) => new Intl.NumberFormat("en-US").format(value);
 
+  // CHANGE: fall back to no currency instead of printing "undefined".
+  const currency = job.currency ? `${job.currency} ` : "";
+
   if (job.salaryMin != null && job.salaryMax != null) {
-    return `${job.currency} ${number(job.salaryMin)} – ${number(job.salaryMax)}`;
+    return `${currency}${number(job.salaryMin)} – ${number(job.salaryMax)}`;
   }
 
-  return `${job.currency} ${number(job.salaryMin ?? job.salaryMax ?? 0)}`;
+  return `${currency}${number(job.salaryMin ?? job.salaryMax ?? 0)}`;
 };
 
 const categoryLabel = (value: string) =>
@@ -152,6 +156,10 @@ const toEditForm = (job: Job): EditForm => ({
 });
 
 const ManageJobsPage = () => {
+  // CHANGE: read the signed-in user so the list only shows their own jobs.
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -164,9 +172,12 @@ const ManageJobsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const loadJobs = useCallback(async () => {
+  // CHANGE: loadJobs now takes the recruiter id.
+  // WHY: before it called getJobs() with no filter, so every job in the database
+  // was shown and could be edited or deleted by any recruiter.
+  const loadJobs = useCallback(async (recruiterId: string) => {
     try {
-      const data = await getJobs();
+      const data = await getJobs({ recruiterId });
       setJobs(Array.isArray(data) ? data : []);
       setError("");
     } catch {
@@ -177,15 +188,22 @@ const ManageJobsPage = () => {
   }, []);
 
   useEffect(() => {
+    // CHANGE: wait for the session, then load only this recruiter's jobs.
+    // WHY: the session is async, so loading on mount fetched before we knew who
+    // the user was (and fetched for signed-out visitors too).
+    if (isPending) return;
+    if (!user?.id) return; // the guard below shows the sign-in card
+
     // Initial load. State is only updated after the request resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadJobs();
-  }, [loadJobs]);
+    void loadJobs(user.id);
+  }, [isPending, user?.id, loadJobs]);
 
   const refresh = () => {
+    if (!user?.id) return;
     setError("");
     setLoading(true);
-    void loadJobs();
+    void loadJobs(user.id);
   };
 
   const filteredJobs = useMemo(() => {
@@ -193,7 +211,11 @@ const ManageJobsPage = () => {
     if (!query) return jobs;
 
     return jobs.filter((job) =>
-      [job.title, job.location, job.category, job.type]
+      [job.title, job.location, job.category, job.type, job.description]
+        // CHANGE: drop empty values before joining.
+        // WHY: join() turned missing fields into the text "undefined", so
+        // searching for "undefined" matched every job.
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(query)
@@ -269,6 +291,32 @@ const ManageJobsPage = () => {
       setDeleting(false);
     }
   };
+
+  // CHANGE: block the page for signed-out users and non-recruiters.
+  // WHY: the dashboard layout has no auth check, so this URL was public.
+  if (!isPending && (!user || user.role !== "recruiter")) {
+    return (
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-16 text-center">
+          <h1 className="text-lg font-semibold text-white">
+            Recruiter access only
+          </h1>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-500">
+            Sign in with a recruiter account to manage job posts.
+          </p>
+          <Link
+            href="/signin"
+            className={cn(
+              buttonVariants(),
+              "mt-5 h-10 rounded-xl bg-indigo-600 px-5 text-white hover:bg-indigo-500"
+            )}
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -629,7 +677,10 @@ const ManageJobsPage = () => {
                 >
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                {/* CHANGE: add "dark" so the portaled menu uses dark colors.
+                    WHY: the menu renders outside the sidebar's .dark wrapper,
+                    so it fell back to the light theme (white popup). */}
+                <SelectContent className="dark">
                   {categories.map((category) => (
                     <SelectItem key={category.value} value={category.value}>
                       {category.label}
@@ -654,7 +705,7 @@ const ManageJobsPage = () => {
                 >
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark">
                   {jobTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
@@ -738,7 +789,7 @@ const ManageJobsPage = () => {
                 >
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark">
                   {statusOptions.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}

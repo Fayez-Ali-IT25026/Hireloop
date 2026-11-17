@@ -90,6 +90,13 @@ export const createJob = async (data: CreateJobPayload) => {
     body: JSON.stringify(data),
   });
 
+  // CHANGE: throw when the server rejects the request.
+  // WHY: before, a failed POST still returned JSON, so the page showed
+  // "Job published successfully!" even when nothing was saved.
+  if (!res.ok) {
+    throw new Error(`Failed to create job (${res.status})`);
+  }
+
   return res.json();
 };
 

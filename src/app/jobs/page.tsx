@@ -72,7 +72,10 @@ const JobCard = ({ job }: { job: Job }) => (
         </div>
       </div>
 
-      {job.isRemote ? (
+      {/* CHANGE: job.isRemote -> job.remote
+          WHY: MongoDB stores "remote". The old name never matched, so this
+          badge never appeared. */}
+      {job.remote ? (
         <Badge className="shrink-0 border-0 bg-emerald-500/10 text-emerald-300">
           Remote
         </Badge>
@@ -90,7 +93,8 @@ const JobCard = ({ job }: { job: Job }) => (
       </span>
       <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1">
         <Briefcase className="size-3 text-zinc-500" />
-        {job.jobType}
+        {/* CHANGE: job.jobType -> job.type (same reason as above). */}
+        {job.type}
       </span>
       <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1">
         <Wallet className="size-3 text-zinc-500" />

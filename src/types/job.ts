@@ -34,11 +34,14 @@ export interface JobForm {
   title: string;
   category: string;
   type: string;
-  jobType: string;
+   companyId?: string
+    recruiterId: string
+  // CHANGE: removed jobType + isRemote + _id from this form type.
+  // WHY: MongoDB only stores "type" and "remote". Having both pairs forced
+  // every create/update call to send fields nobody reads, and _id does not
+  // exist yet when you create a job (that caused the two tsc errors).
   location: string;
-   _id: string;
   remote: boolean;
-  isRemote: boolean;
   deadline: string;
   currency: string;
   salaryMin: string;

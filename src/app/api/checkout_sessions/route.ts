@@ -9,6 +9,15 @@ export async function POST() {
 
   const userSession = await getSession()
 
+  // CHANGE: stop signed-out visitors before calling Stripe.
+  // WHY: metadata values must be strings, so passing null made Stripe reject the
+  // request with a confusing 500.
+  if (!userSession?.user) {
+    return NextResponse.json(
+      { error: 'You must be signed in to start a payment.' },
+      { status: 401 }
+    )
+  }
 
   try {
     const headersList = await headers()
@@ -24,9 +33,10 @@ export async function POST() {
         },
       ],
       mode: 'payment',
-       customer_email: userSession?.user.email,
+       customer_email: userSession.user.email,
         metadata: {
-        userId: userSession?.user.id ?? null,
+        // CHANGE: no "?? null" here — the guard above guarantees a user.
+        userId: userSession.user.id,
       },
       success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       // Provide a name (for example, hosted_web_0001) to label this Checkout integration and measure its conversion independently
